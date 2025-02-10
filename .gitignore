@@ -1,0 +1,4 @@
+**/.vscode
+.goreleaser.yml
+dist/*
+.direnv/
