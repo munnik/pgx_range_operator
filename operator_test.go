@@ -1,10 +1,13 @@
 package pro
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -13,8 +16,13 @@ import (
 )
 
 var conn *pgxpool.Pool
-var integerRangeOperator = NewInteger()
-var timeRangeOperator = NewTime()
+var iro = New(
+	cmp.Compare[int64],
+	func(a, b int64) int64 { return a - b },
+	func(a int64) int64 { return a + 1 },
+	true,
+)
+var tro = NewTime()
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -61,359 +69,477 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func FuzzLessThan(f *testing.F) {
+func FuzzLessThan_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
-			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
-			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+			firstIntRange := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			firstIntRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondIntRange := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			secondIntRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "<", first, second, integerRangeOperator.LessThan)
+			binaryOperatorTest1(t, "<", "int8range", firstIntRange, secondIntRange, iro.LessThan)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "<", "tstzrange", firstTimeRange, secondTimeRange, tro.LessThan)
 		},
 	)
 }
 
-func FuzzLessThanOrEqualTo(f *testing.F) {
+func FuzzLessThanOrEqualTo_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "<=", first, second, integerRangeOperator.LessThanOrEqualTo)
+			binaryOperatorTest1(t, "<=", "int8range", first, second, iro.LessThanOrEqualTo)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "<=", "tstzrange", firstTimeRange, secondTimeRange, tro.LessThanOrEqualTo)
 		},
 	)
 }
 
-func FuzzGreaterThan(f *testing.F) {
+func FuzzGreaterThan_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, ">", first, second, integerRangeOperator.GreaterThan)
+			binaryOperatorTest1(t, ">", "int8range", first, second, iro.GreaterThan)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, ">", "tstzrange", firstTimeRange, secondTimeRange, tro.GreaterThan)
 		},
 	)
 }
 
-func FuzzGreaterThanOrEqualTo(f *testing.F) {
+func FuzzGreaterThanOrEqualTo_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, ">=", first, second, integerRangeOperator.GreaterThanOrEqualTo)
+			binaryOperatorTest1(t, ">=", "int8range", first, second, iro.GreaterThanOrEqualTo)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, ">=", "tstzrange", firstTimeRange, secondTimeRange, tro.GreaterThanOrEqualTo)
 		},
 	)
 }
 
-func FuzzEqual(f *testing.F) {
+func FuzzEqual_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "=", first, second, integerRangeOperator.Equal)
+			binaryOperatorTest1(t, "=", "int8range", first, second, iro.Equal)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "=", "tstzrange", firstTimeRange, secondTimeRange, tro.Equal)
 		},
 	)
 }
 
-func FuzzContain(f *testing.F) {
+func FuzzContain_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "@>", first, second, integerRangeOperator.Contain)
+			binaryOperatorTest1(t, "@>", "int8range", first, second, iro.Contain)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "@>", "tstzrange", firstTimeRange, secondTimeRange, tro.Contain)
 		},
 	)
 }
 
-func FuzzContainElement(f *testing.F) {
+func FuzzContainElement_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, second int) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, second int64) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
 
-			binaryOperatorTest2(t, "@>", first, second, integerRangeOperator.ContainElement)
+			binaryOperatorTest2(t, "@>", "int8range", "bigint", first, second, iro.ContainElement)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTime := time.Unix(second, 0)
+
+			binaryOperatorTest2(t, "@>", "tstzrange", "timestamp with time zone", firstTimeRange, secondTime, tro.ContainElement)
 		},
 	)
 }
 
-func FuzzOverlap(f *testing.F) {
+func FuzzOverlap_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
-			t.Parallel()
-
-			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
-			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
-
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
-			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
-			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
-
-			binaryOperatorTest1(t, "&&", first, second, integerRangeOperator.Overlap)
-		},
-	)
-}
-
-func FuzzLeftOf(f *testing.F) {
-	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "<<", first, second, integerRangeOperator.LeftOf)
+			binaryOperatorTest1(t, "&&", "int8range", first, second, iro.Overlap)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "&&", "tstzrange", firstTimeRange, secondTimeRange, tro.Overlap)
 		},
 	)
 }
 
-func FuzzRightOf(f *testing.F) {
+func FuzzLeftOf_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, ">>", first, second, integerRangeOperator.RightOf)
+			binaryOperatorTest1(t, "<<", "int8range", first, second, iro.LeftOf)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "<<", "tstzrange", firstTimeRange, secondTimeRange, tro.LeftOf)
 		},
 	)
 }
 
-func FuzzAdjacent(f *testing.F) {
+func FuzzRightOf_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "-|-", first, second, integerRangeOperator.Adjacent)
+			binaryOperatorTest1(t, ">>", "int8range", first, second, iro.RightOf)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, ">>", "tstzrange", firstTimeRange, secondTimeRange, tro.RightOf)
 		},
 	)
 }
 
-func FuzzIntersect(f *testing.F) {
+func FuzzAdjacent_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest3(t, "*", first, second, integerRangeOperator.Intersect)
+			binaryOperatorTest1(t, "-|-", "int8range", first, second, iro.Adjacent)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "-|-", "tstzrange", firstTimeRange, secondTimeRange, tro.Adjacent)
 		},
 	)
 }
 
-func FuzzNotExtendRight(f *testing.F) {
+func FuzzIntersect_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "&<", first, second, integerRangeOperator.NotExtendRight)
+			binaryOperatorTest3(t, "*", "int8range", first, second, iro.Intersect)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest3(t, "*", "tstzrange", firstTimeRange, secondTimeRange, tro.Intersect)
 		},
 	)
 }
 
-func FuzzNotExtendLeft(f *testing.F) {
+func FuzzNotExtendRight_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest1(t, "&>", first, second, integerRangeOperator.NotExtendLeft)
+			binaryOperatorTest1(t, "&<", "int8range", first, second, iro.NotExtendRight)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "&<", "tstzrange", firstTimeRange, secondTimeRange, tro.NotExtendRight)
 		},
 	)
 }
 
-func FuzzUnion(f *testing.F) {
+func FuzzNotExtendLeft_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest3(t, "+", first, second, integerRangeOperator.Union)
+			binaryOperatorTest1(t, "&>", "int8range", first, second, iro.NotExtendLeft)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest1(t, "&>", "tstzrange", firstTimeRange, secondTimeRange, tro.NotExtendLeft)
 		},
 	)
 }
 
-func FuzzMerge(f *testing.F) {
+func FuzzUnion_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryFunctionTest(t, "range_merge", first, second, integerRangeOperator.Merge)
+			binaryOperatorTest3(t, "+", "int8range", first, second, iro.Union)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest3(t, "+", "tstzrange", firstTimeRange, secondTimeRange, tro.Union)
 		},
 	)
 }
 
-func FuzzDifference(f *testing.F) {
+func FuzzMerge_(f *testing.F) {
 	f.Fuzz(
-		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int, validSecond bool) {
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
 
 			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
 			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
 
-			first := pgtype.Range[int]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
 			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
-			second := pgtype.Range[int]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
 			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
 
-			binaryOperatorTest3(t, "-", first, second, integerRangeOperator.Difference)
+			binaryFunctionTest(t, "range_merge", "int8range", first, second, iro.Merge)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryFunctionTest(t, "range_merge", "tstzrange", firstTimeRange, secondTimeRange, tro.Merge)
+		},
+	)
+}
+
+func FuzzDifference_(f *testing.F) {
+	f.Fuzz(
+		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
+			t.Parallel()
+
+			lowerFirst, upperFirst = sort(lowerFirst, upperFirst)
+			lowerSecond, upperSecond = sort(lowerSecond, upperSecond)
+
+			first := pgtype.Range[int64]{Lower: lowerFirst, Upper: upperFirst, Valid: validFirst}
+			first.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			second := pgtype.Range[int64]{Lower: lowerSecond, Upper: upperSecond, Valid: validSecond}
+			second.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest3(t, "-", "int8range", first, second, iro.Difference)
+
+			firstTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerFirst, 0), Upper: time.Unix(upperFirst, 0), Valid: validFirst}
+			firstTimeRange.SetBoundTypes(createBoundType(lowerTypeFirst), createBoundType(upperTypeFirst))
+			secondTimeRange := pgtype.Range[time.Time]{Lower: time.Unix(lowerSecond, 0), Upper: time.Unix(upperSecond, 0), Valid: validSecond}
+			secondTimeRange.SetBoundTypes(createBoundType(lowerTypeSecond), createBoundType(upperTypeSecond))
+
+			binaryOperatorTest3(t, "-", "tstzrange", firstTimeRange, secondTimeRange, tro.Difference)
 		},
 	)
 }
 
 func TestSize(t *testing.T) {
 	tests := []struct {
-		r           pgtype.Range[int]
-		expected    int
+		r           pgtype.Range[int64]
+		expected    int64
 		expectedErr bool
 	}{
 		{
-			r:           pgtype.Range[int]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: false},
+			r:           pgtype.Range[int64]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: false},
 			expected:    0,
 			expectedErr: true,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 0, LowerType: pgtype.Unbounded, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 0, LowerType: pgtype.Unbounded, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
 			expected:    0,
 			expectedErr: true,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 0, LowerType: pgtype.Unbounded, Upper: 0, UpperType: pgtype.Unbounded, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 0, LowerType: pgtype.Unbounded, Upper: 0, UpperType: pgtype.Unbounded, Valid: true},
 			expected:    0,
 			expectedErr: true,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 100, LowerType: pgtype.Exclusive, Upper: 0, UpperType: pgtype.Unbounded, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 100, LowerType: pgtype.Exclusive, Upper: 0, UpperType: pgtype.Unbounded, Valid: true},
 			expected:    0,
 			expectedErr: true,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
 			expected:    4,
 			expectedErr: false,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 3, LowerType: pgtype.Exclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 3, LowerType: pgtype.Exclusive, Upper: 6, UpperType: pgtype.Inclusive, Valid: true},
 			expected:    3,
 			expectedErr: false,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Exclusive, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 3, LowerType: pgtype.Inclusive, Upper: 6, UpperType: pgtype.Exclusive, Valid: true},
 			expected:    3,
 			expectedErr: false,
 		},
 		{
-			r:           pgtype.Range[int]{Lower: 3, LowerType: pgtype.Exclusive, Upper: 6, UpperType: pgtype.Exclusive, Valid: true},
+			r:           pgtype.Range[int64]{Lower: 3, LowerType: pgtype.Exclusive, Upper: 6, UpperType: pgtype.Exclusive, Valid: true},
 			expected:    2,
 			expectedErr: false,
 		},
 	}
 
 	for _, tt := range tests {
-		result, err := integerRangeOperator.Size(tt.r)
+		result, err := iro.Size(tt.r)
 		if err == nil && tt.expectedErr {
 			t.Errorf("size `%v`: expected error, got none", tt.r)
 		}
@@ -429,9 +555,9 @@ func TestSize(t *testing.T) {
 	}
 }
 
-func binaryOperatorTest1(t *testing.T, sqlOperator string, first, second pgtype.Range[int], fn func(pgtype.Range[int], pgtype.Range[int]) (bool, error)) {
+func binaryOperatorTest1[T any](t *testing.T, sqlOperator, sqlRangeType string, first, second pgtype.Range[T], fn func(pgtype.Range[T], pgtype.Range[T]) (bool, error)) {
 	expected, expectedErr := retrieveExpected[bool](
-		fmt.Sprintf(`SELECT @first::int4range %s @second::int4range`, sqlOperator),
+		fmt.Sprintf(`SELECT @first::%s %s @second::%s`, sqlRangeType, sqlOperator, sqlRangeType),
 		pgx.NamedArgs{"first": first, "second": second},
 	)
 	result, err := fn(first, second)
@@ -449,9 +575,9 @@ func binaryOperatorTest1(t *testing.T, sqlOperator string, first, second pgtype.
 	}
 }
 
-func binaryOperatorTest2(t *testing.T, sqlOperator string, first pgtype.Range[int], second int, fn func(pgtype.Range[int], int) (bool, error)) {
+func binaryOperatorTest2[T any](t *testing.T, sqlOperator, sqlRangeType, sqlElementType string, first pgtype.Range[T], second T, fn func(pgtype.Range[T], T) (bool, error)) {
 	expected, expectedErr := retrieveExpected[bool](
-		fmt.Sprintf(`SELECT @first::int4range %s @second::integer`, sqlOperator),
+		fmt.Sprintf(`SELECT @first::%s %s @second::%s`, sqlRangeType, sqlOperator, sqlElementType),
 		pgx.NamedArgs{"first": first, "second": second},
 	)
 	result, err := fn(first, second)
@@ -469,9 +595,9 @@ func binaryOperatorTest2(t *testing.T, sqlOperator string, first pgtype.Range[in
 	}
 }
 
-func binaryOperatorTest3(t *testing.T, sqlOperator string, first, second pgtype.Range[int], fn func(pgtype.Range[int], pgtype.Range[int]) (pgtype.Range[int], error)) {
-	expected, expectedErr := retrieveExpected[pgtype.Range[int]](
-		fmt.Sprintf(`SELECT @first::int4range %s @second::int4range`, sqlOperator),
+func binaryOperatorTest3[T any](t *testing.T, sqlOperator, sqlRangeType string, first, second pgtype.Range[T], fn func(pgtype.Range[T], pgtype.Range[T]) (pgtype.Range[T], error)) {
+	expected, expectedErr := retrieveExpected[pgtype.Range[T]](
+		fmt.Sprintf(`SELECT @first::%s %s @second::%s`, sqlRangeType, sqlOperator, sqlRangeType),
 		pgx.NamedArgs{"first": first, "second": second},
 	)
 	result, err := fn(first, second)
@@ -484,14 +610,14 @@ func binaryOperatorTest3(t *testing.T, sqlOperator string, first, second pgtype.
 	if err != nil && expectedErr != nil {
 		return
 	}
-	if expected != result {
+	if !reflect.DeepEqual(expected, result) {
 		t.Errorf("`%v` %s `%v`: expected result `%v`, got `%v`", first, sqlOperator, second, expected, result)
 	}
 }
 
-func binaryFunctionTest(t *testing.T, sqlFunction string, first, second pgtype.Range[int], fn func(pgtype.Range[int], pgtype.Range[int]) (pgtype.Range[int], error)) {
-	expected, expectedErr := retrieveExpected[pgtype.Range[int]](
-		fmt.Sprintf(`SELECT %s(@first::int4range, @second::int4range)`, sqlFunction),
+func binaryFunctionTest[T any](t *testing.T, sqlFunction, sqlRangeType string, first, second pgtype.Range[T], fn func(pgtype.Range[T], pgtype.Range[T]) (pgtype.Range[T], error)) {
+	expected, expectedErr := retrieveExpected[pgtype.Range[T]](
+		fmt.Sprintf(`SELECT %s(@first::%s, @second::%s)`, sqlFunction, sqlRangeType, sqlRangeType),
 		pgx.NamedArgs{"first": first, "second": second},
 	)
 	result, err := fn(first, second)
@@ -504,7 +630,7 @@ func binaryFunctionTest(t *testing.T, sqlFunction string, first, second pgtype.R
 	if err != nil && expectedErr != nil {
 		return
 	}
-	if expected != result {
+	if !reflect.DeepEqual(expected, result) {
 		t.Errorf("%s(`%v`, `%v`): expected result `%v`, got `%v`", sqlFunction, first, second, expected, result)
 	}
 }
@@ -526,14 +652,14 @@ func retrieveExpected[T any](query string, args pgx.NamedArgs) (T, error) {
 	return expected, nil
 }
 
-func sort(lower, upper int) (int, int) {
+func sort(lower, upper int64) (int64, int64) {
 	if lower > upper {
 		return upper, lower
 	}
 	return lower, upper
 }
 
-func createBoundType(i int) pgtype.BoundType {
+func createBoundType(i int64) pgtype.BoundType {
 	types := []pgtype.BoundType{
 		pgtype.Inclusive,
 		pgtype.Exclusive,
@@ -541,7 +667,7 @@ func createBoundType(i int) pgtype.BoundType {
 		// todo: what to do with pgtype.Empty
 		// pgtype.Empty,
 	}
-	i %= len(types)
+	i %= int64(len(types))
 	if i < 0 {
 		i = -i
 	}

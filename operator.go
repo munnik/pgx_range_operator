@@ -10,10 +10,11 @@ import (
 )
 
 type operator[T any, S constraints.Integer] struct {
-	cmp    func(a, b T) int
-	diff   func(a, b T) S
-	addOne func(a T) T
-	zero   T
+	cmp      func(a, b T) int
+	diff     func(a, b T) S
+	addOne   func(a T) T
+	zero     T
+	discrete bool
 }
 
 // Create a new operator for the Range[T] type
@@ -25,21 +26,23 @@ type operator[T any, S constraints.Integer] struct {
 // function should return a -b. The return type of this function is S.
 //
 // Also see the functions [pgxrangeoperator.NewInteger] and [pgxrangeoperator.NewTime]
-func New[T any, S constraints.Integer](cmp func(a, b T) int, diff func(a, b T) S, addOne func(a T) T) operator[T, S] {
+func New[T any, S constraints.Integer](cmp func(a, b T) int, diff func(a, b T) S, addOne func(a T) T, discrete bool) operator[T, S] {
 	return operator[T, S]{
-		cmp:    cmp,
-		diff:   diff,
-		addOne: addOne,
-		zero:   *new(T),
+		cmp:      cmp,
+		diff:     diff,
+		addOne:   addOne,
+		zero:     *new(T),
+		discrete: discrete,
 	}
 }
 
 func NewInteger() operator[int, int] {
 	return operator[int, int]{
-		cmp:    cmp.Compare[int],
-		diff:   func(a, b int) int { return a - b },
-		addOne: func(a int) int { return a + 1 },
-		zero:   0,
+		cmp:      cmp.Compare[int],
+		diff:     func(a, b int) int { return a - b },
+		addOne:   func(a int) int { return a + 1 },
+		zero:     0,
+		discrete: true,
 	}
 }
 
@@ -59,7 +62,8 @@ func NewTime() operator[time.Time, time.Duration] {
 		addOne: func(a time.Time) time.Time {
 			return a.Add(time.Duration(1))
 		},
-		zero: *new(time.Time),
+		zero:     *new(time.Time),
+		discrete: false,
 	}
 }
 
@@ -496,24 +500,23 @@ func (ro operator[T, S]) Size(r pgtype.Range[T]) (S, error) {
 	if r.LowerType == pgtype.Unbounded || r.UpperType == pgtype.Unbounded {
 		return ro.diff(ro.zero, ro.zero), fmt.Errorf("the range is unbounded")
 	}
-	if r.LowerType == pgtype.Exclusive {
-		r.Lower = ro.addOne(r.Lower)
-		r.LowerType = pgtype.Inclusive
+	diff := ro.diff(r.Upper, r.Lower)
+	if r.LowerType == pgtype.Inclusive && r.UpperType == pgtype.Inclusive {
+		return diff + 1, nil
 	}
-	if r.UpperType == pgtype.Inclusive {
-		r.Upper = ro.addOne(r.Upper)
-		r.UpperType = pgtype.Exclusive
+	if r.LowerType == pgtype.Exclusive && r.UpperType == pgtype.Exclusive {
+		return diff - 1, nil
 	}
-	return ro.diff(r.Upper, r.Lower), nil
+	return diff, nil
 }
 
 // Rewrite converts all bounded ranges to the form [ , )
 func (ro operator[T, S]) Rewrite(r pgtype.Range[T]) pgtype.Range[T] {
-	if r.LowerType == pgtype.Exclusive {
+	if r.LowerType == pgtype.Exclusive && ro.discrete {
 		r.Lower = ro.addOne(r.Lower)
 		r.LowerType = pgtype.Inclusive
 	}
-	if r.UpperType == pgtype.Inclusive {
+	if r.UpperType == pgtype.Inclusive && ro.discrete {
 		r.Upper = ro.addOne(r.Upper)
 		r.UpperType = pgtype.Exclusive
 	}
