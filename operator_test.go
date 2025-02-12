@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func FuzzLessThan_(f *testing.F) {
+func FuzzLessThan(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -94,7 +94,7 @@ func FuzzLessThan_(f *testing.F) {
 	)
 }
 
-func FuzzLessThanOrEqualTo_(f *testing.F) {
+func FuzzLessThanOrEqualTo(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -119,7 +119,7 @@ func FuzzLessThanOrEqualTo_(f *testing.F) {
 	)
 }
 
-func FuzzGreaterThan_(f *testing.F) {
+func FuzzGreaterThan(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -144,7 +144,7 @@ func FuzzGreaterThan_(f *testing.F) {
 	)
 }
 
-func FuzzGreaterThanOrEqualTo_(f *testing.F) {
+func FuzzGreaterThanOrEqualTo(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -169,7 +169,7 @@ func FuzzGreaterThanOrEqualTo_(f *testing.F) {
 	)
 }
 
-func FuzzEqual_(f *testing.F) {
+func FuzzEqual(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -194,7 +194,7 @@ func FuzzEqual_(f *testing.F) {
 	)
 }
 
-func FuzzContain_(f *testing.F) {
+func FuzzContain(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -219,7 +219,7 @@ func FuzzContain_(f *testing.F) {
 	)
 }
 
-func FuzzContainElement_(f *testing.F) {
+func FuzzContainElement(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, second int64) {
 			t.Parallel()
@@ -240,7 +240,7 @@ func FuzzContainElement_(f *testing.F) {
 	)
 }
 
-func FuzzOverlap_(f *testing.F) {
+func FuzzOverlap(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -265,7 +265,7 @@ func FuzzOverlap_(f *testing.F) {
 	)
 }
 
-func FuzzLeftOf_(f *testing.F) {
+func FuzzLeftOf(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -290,7 +290,7 @@ func FuzzLeftOf_(f *testing.F) {
 	)
 }
 
-func FuzzRightOf_(f *testing.F) {
+func FuzzRightOf(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -315,7 +315,7 @@ func FuzzRightOf_(f *testing.F) {
 	)
 }
 
-func FuzzAdjacent_(f *testing.F) {
+func FuzzAdjacent(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -340,7 +340,7 @@ func FuzzAdjacent_(f *testing.F) {
 	)
 }
 
-func FuzzIntersect_(f *testing.F) {
+func FuzzIntersect(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -365,7 +365,7 @@ func FuzzIntersect_(f *testing.F) {
 	)
 }
 
-func FuzzNotExtendRight_(f *testing.F) {
+func FuzzNotExtendRight(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -390,7 +390,7 @@ func FuzzNotExtendRight_(f *testing.F) {
 	)
 }
 
-func FuzzNotExtendLeft_(f *testing.F) {
+func FuzzNotExtendLeft(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -415,7 +415,7 @@ func FuzzNotExtendLeft_(f *testing.F) {
 	)
 }
 
-func FuzzUnion_(f *testing.F) {
+func FuzzUnion(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -440,7 +440,7 @@ func FuzzUnion_(f *testing.F) {
 	)
 }
 
-func FuzzMerge_(f *testing.F) {
+func FuzzMerge(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
@@ -465,7 +465,7 @@ func FuzzMerge_(f *testing.F) {
 	)
 }
 
-func FuzzDifference_(f *testing.F) {
+func FuzzDifference(f *testing.F) {
 	f.Fuzz(
 		func(t *testing.T, lowerFirst, lowerTypeFirst, upperFirst, upperTypeFirst int64, validFirst bool, lowerSecond, lowerTypeSecond, upperSecond, upperTypeSecond int64, validSecond bool) {
 			t.Parallel()
