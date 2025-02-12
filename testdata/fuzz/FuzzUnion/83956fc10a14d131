@@ -1,0 +1,11 @@
+go test fuzz v1
+int(0)
+int(0)
+int(0)
+int(-10)
+bool(false)
+int(36)
+int(0)
+int(-34)
+int(0)
+bool(false)
