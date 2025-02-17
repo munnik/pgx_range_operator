@@ -195,7 +195,8 @@ func (r Range[T, S]) Size() (S, error) {
 	return r.ro.Size(r.r)
 }
 
-// Rewrite converts all discrete and bounded ranges to the form [ , )
-func (r Range[T, S]) Rewrite() pgtype.Range[T] {
-	return r.ro.Rewrite(r.r)
+func (r Range[T, S]) Rewrite() Range[T, S] {
+	result := r.ro.Rewrite(r.r)
+	r.r = result
+	return r
 }
