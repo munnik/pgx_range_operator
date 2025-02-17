@@ -1,6 +1,7 @@
 package pro
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -58,8 +59,28 @@ func (r Range[T, S]) Empty() (bool, error) {
 	return r.ro.Empty(r.r)
 }
 
+func (r Range[T, S]) Lower() (T, error) {
+	if r.LowerInf() {
+		return r.ro.zero, fmt.Errorf("lower bound is infinite")
+	}
+	if r.r.LowerType == pgtype.Empty {
+		return r.ro.zero, fmt.Errorf("lower bound is empty")
+	}
+	return r.r.Lower, nil
+}
+
 func (r Range[T, S]) LowerInf() bool {
 	return r.ro.LowerInf(r.r)
+}
+
+func (r Range[T, S]) Upper() (T, error) {
+	if r.UpperInf() {
+		return r.ro.zero, fmt.Errorf("upper bound is infinite")
+	}
+	if r.r.UpperType == pgtype.Empty {
+		return r.ro.zero, fmt.Errorf("upper bound is empty")
+	}
+	return r.r.Upper, nil
 }
 
 func (r Range[T, S]) UpperInf() bool {
