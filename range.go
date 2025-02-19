@@ -23,7 +23,7 @@ func WithLowerType[T any, S constraints.Integer](t pgtype.BoundType) RangeOption
 
 func WithLowerInf[T any, S constraints.Integer]() RangeOption[T, S] {
 	return func(r *Range[T, S]) {
-		r.r.Lower = *new(T)
+		r.r.Lower = r.ro.zero
 		r.r.LowerType = pgtype.Unbounded
 	}
 }
@@ -36,7 +36,7 @@ func WithUpperType[T any, S constraints.Integer](t pgtype.BoundType) RangeOption
 
 func WithUpperInf[T any, S constraints.Integer]() RangeOption[T, S] {
 	return func(r *Range[T, S]) {
-		r.r.Lower = *new(T)
+		r.r.Lower = r.ro.zero
 		r.r.LowerType = pgtype.Unbounded
 	}
 }
@@ -130,6 +130,27 @@ func (r Range[T, S]) LowerInf() bool {
 	return r.ro.LowerInf(r.r)
 }
 
+func (r *Range[T, S]) SetLower(v T) *Range[T, S] {
+	r.r.Lower = v
+	return r
+}
+
+func (r *Range[T, S]) SetLowerBoundType(v pgtype.BoundType) *Range[T, S] {
+	r.r.LowerType = v
+	if r.r.LowerType == pgtype.Empty || r.r.UpperType == pgtype.Empty {
+		r.r.Valid = false
+	} else {
+		r.r.Valid = true
+	}
+	return r
+}
+
+func (r *Range[T, S]) SetLowerInf() *Range[T, S] {
+	r.r.Lower = r.ro.zero
+	r.r.LowerType = pgtype.Unbounded
+	return r
+}
+
 func (r Range[T, S]) Upper() (T, error) {
 	if r.UpperInf() {
 		return r.ro.zero, fmt.Errorf("upper bound is infinite")
@@ -142,6 +163,27 @@ func (r Range[T, S]) Upper() (T, error) {
 
 func (r Range[T, S]) UpperInf() bool {
 	return r.ro.UpperInf(r.r)
+}
+
+func (r *Range[T, S]) SetUpper(v T) *Range[T, S] {
+	r.r.Upper = v
+	return r
+}
+
+func (r *Range[T, S]) SetUpperBoundType(v pgtype.BoundType) *Range[T, S] {
+	r.r.UpperType = v
+	if r.r.LowerType == pgtype.Empty || r.r.UpperType == pgtype.Empty {
+		r.r.Valid = false
+	} else {
+		r.r.Valid = true
+	}
+	return r
+}
+
+func (r *Range[T, S]) SetUpperInf() *Range[T, S] {
+	r.r.Upper = r.ro.zero
+	r.r.UpperType = pgtype.Unbounded
+	return r
 }
 
 // Is the first range equal to the second?
