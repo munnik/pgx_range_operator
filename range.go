@@ -13,21 +13,75 @@ type Range[T any, S constraints.Integer] struct {
 	ro operator[T, S]
 }
 
-type TimeRange = Range[time.Time, time.Duration]
-type IntegerRange = Range[int, int]
+type RangeOption[T any, S constraints.Integer] func(*Range[T, S])
 
-func NewIntegerRange(r pgtype.Range[int]) Range[int, int] {
-	return Range[int, int]{
-		r:  r,
-		ro: NewInteger(),
+func WithLowerType[T any, S constraints.Integer](t pgtype.BoundType) RangeOption[T, S] {
+	return func(r *Range[T, S]) {
+		r.r.LowerType = t
 	}
 }
 
-func NewTimeRange(r pgtype.Range[time.Time]) TimeRange {
-	return TimeRange{
-		r:  r,
+func WithLowerInf[T any, S constraints.Integer]() RangeOption[T, S] {
+	return func(r *Range[T, S]) {
+		r.r.Lower = *new(T)
+		r.r.LowerType = pgtype.Unbounded
+	}
+}
+
+func WithUpperType[T any, S constraints.Integer](t pgtype.BoundType) RangeOption[T, S] {
+	return func(r *Range[T, S]) {
+		r.r.UpperType = t
+	}
+}
+
+func WithUpperInf[T any, S constraints.Integer]() RangeOption[T, S] {
+	return func(r *Range[T, S]) {
+		r.r.Lower = *new(T)
+		r.r.LowerType = pgtype.Unbounded
+	}
+}
+
+func WithInvalid[T any, S constraints.Integer]() RangeOption[T, S] {
+	return func(r *Range[T, S]) {
+		r.r.Valid = false
+	}
+}
+
+type TimeRange = Range[time.Time, time.Duration]
+type IntegerRange = Range[int, int]
+
+func NewIntegerRange(lower, upper int, opts ...RangeOption[int, int]) IntegerRange {
+	result := &IntegerRange{
+		r: pgtype.Range[int]{
+			Lower:     lower,
+			LowerType: pgtype.Inclusive,
+			Upper:     upper,
+			UpperType: pgtype.Exclusive,
+			Valid:     true,
+		},
+		ro: NewInteger(),
+	}
+	for _, opt := range opts {
+		opt(result)
+	}
+	return *result
+}
+
+func NewTimeRange(lower, upper time.Time, opts ...RangeOption[time.Time, time.Duration]) TimeRange {
+	result := &TimeRange{
+		r: pgtype.Range[time.Time]{
+			Lower:     lower,
+			LowerType: pgtype.Inclusive,
+			Upper:     upper,
+			UpperType: pgtype.Exclusive,
+			Valid:     true,
+		},
 		ro: NewTime(),
 	}
+	for _, opt := range opts {
+		opt(result)
+	}
+	return *result
 }
 
 // Implement RangeValuer interface
