@@ -13,6 +13,9 @@ type Range[T any, S constraints.Integer] struct {
 	ro operator[T, S]
 }
 
+type TimeRange = Range[time.Time, time.Duration]
+type IntegerRange = Range[int, int]
+
 func NewIntegerRange(r pgtype.Range[int]) Range[int, int] {
 	return Range[int, int]{
 		r:  r,
@@ -20,8 +23,8 @@ func NewIntegerRange(r pgtype.Range[int]) Range[int, int] {
 	}
 }
 
-func NewTimeRange(r pgtype.Range[time.Time]) Range[time.Time, time.Duration] {
-	return Range[time.Time, time.Duration]{
+func NewTimeRange(r pgtype.Range[time.Time]) TimeRange {
+	return TimeRange{
 		r:  r,
 		ro: NewTime(),
 	}
